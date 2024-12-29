@@ -12,7 +12,9 @@
 	let canvasPaint: HTMLCanvasElement;
 
 	let tilesMousePos = $state({ x: 0, y: 0 });
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let selectedTileIndex = $state(0);
+	let selectionRectPos = $state({ x: 0, y: 0 });
 
 	let paintMousePos = $state({ x: 0, y: 0 });
 	let isMouseDown = $state(false);
@@ -57,10 +59,11 @@
 	async function updateCanvasTiles() {
 		const tilesBitmap = await tiles.getImageBitmap();
 
-		const selectionRect = new Canvas(8, 8);
-		for (let x = 0; x < 8; x++) {
-			for (let y = 0; y < 8; y++) {
-				if (x === 0 || x === 7 || y === 0 || y === 7) {
+		const size = tileSize + 2;
+		const selectionRect = new Canvas(size, size);
+		for (let x = 0; x < size; x++) {
+			for (let y = 0; y < size; y++) {
+				if (x === 0 || x === size - 1 || y === 0 || y === size - 1) {
 					selectionRect.setPixel(x, y, new Color(255, 255, 255, 255));
 				} else {
 					selectionRect.setPixel(x, y, new Color(0, 0, 0, 0));
@@ -73,8 +76,9 @@
 		let tilesCtx = canvasTiles.getContext('2d');
 		if (!tilesCtx) return;
 		tilesCtx.imageSmoothingEnabled = false;
+		tilesCtx.clearRect(0, 0, originSize, originSize);
 		tilesCtx.drawImage(tilesBitmap, 0, 0);
-		tilesCtx.drawImage(selectionRectBitmap, 0, 0);
+		tilesCtx.drawImage(selectionRectBitmap, selectionRectPos.x - 1, selectionRectPos.y - 1);
 	}
 
 	async function updateCanvasPaint() {
@@ -84,11 +88,26 @@
 		let paintCtx = canvasPaint.getContext('2d');
 		if (!paintCtx) return;
 		paintCtx.imageSmoothingEnabled = false;
-		paintCtx.drawImage(tilesBitmap, 0, 0, originSize, originSize);
+		paintCtx.clearRect(0, 0, tileSize, tileSize);
+		paintCtx.drawImage(
+			tilesBitmap,
+			selectionRectPos.x,
+			selectionRectPos.y,
+			tileSize,
+			tileSize,
+			0,
+			0,
+			tileSize,
+			tileSize
+		);
 	}
 
 	function paintDraw() {
-		tiles.setPixel(paintMousePos.x, paintMousePos.y, $selectedColor);
+		tiles.setPixel(
+			paintMousePos.x + selectionRectPos.x,
+			paintMousePos.y + selectionRectPos.y,
+			$selectedColor
+		);
 		updateCanvasOrigin();
 		updateCanvasTiles();
 		updateCanvasPaint();
@@ -114,13 +133,17 @@
 			const row = Math.floor(y / tileSize);
 			// get index of 16 rows and 16 cols tiles
 			const index = row * 16 + col;
-			console.log({ row, col, index });
+			// console.log({ row, col, index });
 			selectedTileIndex = index;
+			// get selection rect pos by col row
+			selectionRectPos = { x: col * tileSize, y: row * tileSize };
+			updateCanvasTiles();
+			updateCanvasPaint();
 		});
 
 		canvasPaint.addEventListener('mousemove', function (event) {
 			const rect = canvasPaint.getBoundingClientRect();
-			const scale = 512 / tileSize;
+			const scale = 480 / tileSize;
 			const x = Math.floor((event.clientX - rect.left) / scale);
 			const y = Math.floor((event.clientY - rect.top) / scale);
 			paintMousePos = { x, y };
@@ -173,7 +196,7 @@
 				width={tileSize}
 				height={tileSize}
 				class="border border-black bg-black"
-				style="width: 512px; height: 512px;"
+				style="width: 480px; height: 480px;"
 				bind:this={canvasPaint}
 			></canvas>
 			<PalleteComponent />

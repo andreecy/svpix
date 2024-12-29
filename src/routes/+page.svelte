@@ -4,28 +4,53 @@
 
 	const w = 128;
 	const h = 128;
-	let canvasTiles: HTMLCanvasElement;
-	let canvas: HTMLCanvasElement;
 
-	onMount(() => {
-		let ctx = canvasTiles.getContext('2d');
-		if (!ctx) return;
-		ctx.imageSmoothingEnabled = false;
-		const c = new Canvas(w, h);
+	let canvasOrigin: HTMLCanvasElement;
+	let canvasTiles: HTMLCanvasElement;
+	let canvasPaint: HTMLCanvasElement;
+
+	onMount(async () => {
+		const tiles = new Canvas(w, h);
 		for (let x = 0; x < w; x++) {
 			for (let y = 0; y < h; y++) {
 				// random color for 16x16
 				if (x < 16 && y < 16) {
-					c.setPixel(x, y, new Color(x * 20, x * 20, x * 20, 255));
+					tiles.setPixel(x, y, new Color(x * 10 + y * 10, x * 10 + y * 10, x * 10 + y * 10, 255));
 				}
 			}
 		}
-		ctx.putImageData(c.imageData, 0, 0);
 
-		let context = canvas.getContext('2d');
-		if (!context) return;
-		context.imageSmoothingEnabled = false;
-		context.drawImage(canvasTiles, 0, 0, w, h);
+		const tilesBitmap = await tiles.getImageBitmap();
+
+		const selectionRect = new Canvas(8, 8);
+		for (let x = 0; x < 8; x++) {
+			for (let y = 0; y < 8; y++) {
+				if (x === 0 || x === 7 || y === 0 || y === 7) {
+					selectionRect.setPixel(x, y, new Color(255, 255, 255, 255));
+				} else {
+					selectionRect.setPixel(x, y, new Color(0, 0, 0, 0));
+				}
+			}
+		}
+		const selectionRectBitmap = await selectionRect.getImageBitmap();
+
+		// origin canvas, represent the original image
+		let originCtx = canvasOrigin.getContext('2d');
+		if (!originCtx) return;
+		originCtx.drawImage(tilesBitmap, 0, 0);
+
+		// canvasTiles, represent the tiles
+		let tilesCtx = canvasTiles.getContext('2d');
+		if (!tilesCtx) return;
+		tilesCtx.imageSmoothingEnabled = false;
+		tilesCtx.drawImage(canvasOrigin, 0, 0, w, h);
+		tilesCtx.drawImage(selectionRectBitmap, 0, 0);
+
+		// canvasPaint, the current selected tile, painting canvas
+		let paintCtx = canvasPaint.getContext('2d');
+		if (!paintCtx) return;
+		paintCtx.imageSmoothingEnabled = false;
+		paintCtx.drawImage(canvasOrigin, 0, 0, w, h);
 	});
 </script>
 
@@ -34,16 +59,23 @@
 		<canvas
 			width={w}
 			height={h}
-			class="block border border-neutral-500"
+			class="hidden border border-black"
+			style="width: 128px; height: 128px;"
+			bind:this={canvasOrigin}
+		></canvas>
+		<canvas
+			width={w}
+			height={h}
+			class="border border-black"
 			style="width: 512px; height: 512px;"
 			bind:this={canvasTiles}
 		></canvas>
 		<canvas
 			width={8}
 			height={8}
-			class="block border border-neutral-500"
+			class="border border-black"
 			style="width: 512px; height: 512px;"
-			bind:this={canvas}
+			bind:this={canvasPaint}
 		></canvas>
 	</div>
 </div>

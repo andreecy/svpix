@@ -54,4 +54,8 @@ export class Canvas {
 		this.imageData.data[index + 2] = color.b;
 		this.imageData.data[index + 3] = color.a;
 	}
+
+	getImageBitmap() {
+		return createImageBitmap(this.imageData);
+	}
 }

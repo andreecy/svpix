@@ -12,7 +12,7 @@
 	let canvasPaint: HTMLCanvasElement;
 
 	let tilesMousePos = $state({ x: 0, y: 0 });
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 	let selectedTileIndex = $state(0);
 	let selectionRectPos = $state({ x: 0, y: 0 });
 
@@ -22,18 +22,19 @@
 	// data of the original file
 	let tiles: Canvas;
 
+	// tile size in px / zoom
 	let tileSize = $state(8);
 
-	async function updateCanvasOrigin() {
-		// for (let x = 0; x < w; x++) {
-		// 	for (let y = 0; y < h; y++) {
-		// 		// random color for 16x16
-		// 		if (x < 16 && y < 16) {
-		// 			tiles.setPixel(x, y, new Color(x * 10 + y * 10, x * 10 + y * 10, x * 10 + y * 10, 255));
-		// 		}
-		// 	}
-		// }
+	// update canvas when tileSize / zoom changes
+	$effect(() => {
+		if (tileSize) {
+			updateCanvasOrigin();
+			updateCanvasTiles();
+			updateCanvasPaint();
+		}
+	});
 
+	async function updateCanvasOrigin() {
 		const tilesBitmap = await tiles.getImageBitmap();
 		// origin canvas, represent the original image
 		let originCtx = canvasOrigin.getContext('2d');
@@ -113,6 +114,22 @@
 		updateCanvasPaint();
 	}
 
+	function updateSelection() {
+		const { x, y } = tilesMousePos;
+		const col = Math.floor(x / 8);
+		const row = Math.floor(y / 8);
+		// get index of 16 rows and 16 cols tiles
+		const index = row * 16 + col;
+		// console.log({ row, col, index });
+		selectedTileIndex = index;
+
+		const targetRectX = Math.min(col * 8, originSize - tileSize);
+		const targetRectY = Math.min(row * 8, originSize - tileSize);
+
+		// get selection rect pos by col row
+		selectionRectPos = { x: targetRectX, y: targetRectY };
+	}
+
 	onMount(async () => {
 		tiles = new Canvas(originSize, originSize);
 		updateCanvasOrigin();
@@ -128,15 +145,7 @@
 		});
 
 		canvasTiles.addEventListener('mousedown', function () {
-			const { x, y } = tilesMousePos;
-			const col = Math.floor(x / tileSize);
-			const row = Math.floor(y / tileSize);
-			// get index of 16 rows and 16 cols tiles
-			const index = row * 16 + col;
-			// console.log({ row, col, index });
-			selectedTileIndex = index;
-			// get selection rect pos by col row
-			selectionRectPos = { x: col * tileSize, y: row * tileSize };
+			updateSelection();
 			updateCanvasTiles();
 			updateCanvasPaint();
 		});
@@ -172,34 +181,97 @@
 	});
 </script>
 
-<div class="flex h-screen items-center">
-	<div class="flex h-full flex-1 flex-row items-start gap-4 p-4">
-		<div class="flex flex-1 flex-col items-center gap-4">
-			<canvas
-				width={originSize}
-				height={originSize}
-				class="hidden border border-black"
-				style="width: 128px; height: 128px;"
-				bind:this={canvasOrigin}
-			></canvas>
-			<canvas
-				width={originSize}
-				height={originSize}
-				class="border border-black bg-black"
-				style="width: 640px; height: 640px;"
-				bind:this={canvasTiles}
-			></canvas>
-			<button class="bg-black px-4 py-2 text-white" onclick={exportPng}>Export</button>
-		</div>
-		<div class="flex flex-1 flex-col items-center gap-8">
-			<canvas
-				width={tileSize}
-				height={tileSize}
-				class="border border-black bg-black"
-				style="width: 480px; height: 480px;"
-				bind:this={canvasPaint}
-			></canvas>
-			<PalleteComponent />
+<div class="font-mono">
+	<div class="flex h-screen items-center">
+		<div class="flex h-full flex-1 flex-row items-start">
+			<div class="h-full flex-1 bg-slate-950">
+				<div
+					class="flex h-10 flex-row items-center justify-between bg-slate-700 px-4 py-1 text-white"
+				>
+					<div class="flex items-center gap-8">
+						<p>TILES</p>
+						<p>
+							<span>⊹</span>
+							<span>x: {tilesMousePos.x}</span>
+							<span>y: {tilesMousePos.y}</span>
+						</p>
+						<p>
+							<span>⛶</span>
+							<span>#{selectedTileIndex}</span>
+							<span>x: {selectionRectPos.x}</span>
+							<span>y: {selectionRectPos.y}</span>
+						</p>
+					</div>
+
+					<div class="flex items-center gap-4 p-2">
+						<p class="text-white">Zoom</p>
+						<div class="grid grid-cols-4 gap-2">
+							<button
+								class="h-6 w-6 {tileSize === 8
+									? 'bg-slate-300 text-black'
+									: 'bg-slate-800 text-white'}"
+								onclick={() => (tileSize = 8)}>8</button
+							>
+							<button
+								class="h-6 w-6 {tileSize === 16
+									? 'bg-slate-300 text-black'
+									: 'bg-slate-800 text-white'}"
+								onclick={() => (tileSize = 16)}>16</button
+							>
+							<button
+								class="h-6 w-6 {tileSize === 32
+									? 'bg-slate-300 text-black'
+									: 'bg-slate-800 text-white'}"
+								onclick={() => (tileSize = 32)}>32</button
+							>
+							<button
+								class="h-6 w-6 {tileSize === 64
+									? 'bg-slate-300 text-black'
+									: 'bg-slate-800 text-white'}"
+								onclick={() => (tileSize = 64)}>64</button
+							>
+						</div>
+					</div>
+				</div>
+				<div class="flex flex-col items-center gap-4 p-2">
+					<canvas
+						width={originSize}
+						height={originSize}
+						class="hidden border border-black"
+						style="width: 128px; height: 128px;"
+						bind:this={canvasOrigin}
+					></canvas>
+					<canvas
+						width={originSize}
+						height={originSize}
+						class="border-4 border-neutral-600 bg-black"
+						style="width: 640px; height: 640px;"
+						bind:this={canvasTiles}
+					></canvas>
+					<button class="bg-black px-4 py-2 text-white" onclick={exportPng}>Export</button>
+				</div>
+			</div>
+			<div class="h-full flex-1 bg-slate-800">
+				<div class="flex h-10 items-center gap-8 bg-slate-700 px-4 py-1 text-white">
+					<p>CANVAS</p>
+					<p>
+						<span>⊹</span>
+						<span>x: {paintMousePos.x}</span>
+						<span>y: {paintMousePos.y}</span>
+					</p>
+				</div>
+				<div class="flex flex-col items-center gap-2 p-2">
+					<p class="text-xl text-white">#{selectedTileIndex}</p>
+					<canvas
+						width={tileSize}
+						height={tileSize}
+						class="border border-black bg-black"
+						style="width: 480px; height: 480px;"
+						bind:this={canvasPaint}
+					></canvas>
+					<PalleteComponent />
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

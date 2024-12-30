@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-	<title>SvPix</title>
+	<title>SvPix - Pixel Art Sprite Editor powered by Svelte</title>
 </svelte:head>
 
 {@render children()}

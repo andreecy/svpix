@@ -9,6 +9,16 @@ export class Canvas {
 		this.width = width;
 		this.height = height;
 		this.imageData = new ImageData(width, height);
+
+		this.clearPixel();
+	}
+
+	setImageData(imageData: ImageData) {
+		this.imageData = imageData;
+	}
+
+	clearPixel() {
+		this.imageData.data.fill(0);
 	}
 
 	getIndex(x: number, y: number) {
@@ -31,6 +41,14 @@ export class Canvas {
 		this.imageData.data[index + 1] = color.g;
 		this.imageData.data[index + 2] = color.b;
 		this.imageData.data[index + 3] = color.a;
+	}
+
+	deletePixel(x: number, y: number) {
+		const index = this.getIndex(x, y);
+		this.imageData.data[index + 0] = 0;
+		this.imageData.data[index + 1] = 0;
+		this.imageData.data[index + 2] = 0;
+		this.imageData.data[index + 3] = 0;
 	}
 
 	getImageBitmap() {

@@ -2,7 +2,9 @@
 	import { Canvas } from '$lib/canvas';
 	import { Color } from '$lib/color';
 	import PalleteComponent from '$lib/components/PalleteComponent.svelte';
+	import ToolComponent from '$lib/components/ToolComponent.svelte';
 	import { selectedColor } from '$lib/stores/pallete';
+	import { activeTool, Tool } from '$lib/stores/tool';
 	import { onMount } from 'svelte';
 
 	const originSize = 128;
@@ -20,7 +22,7 @@
 	let isMouseDown = $state(false);
 
 	// data of the original file
-	let tiles: Canvas;
+	let tiles: Canvas | undefined;
 
 	// tile size in px / zoom
 	let tileSize = $state(8);
@@ -35,11 +37,56 @@
 	});
 
 	async function updateCanvasOrigin() {
-		const tilesBitmap = await tiles.getImageBitmap();
+		const tilesBitmap = await tiles?.getImageBitmap();
 		// origin canvas, represent the original image
 		let originCtx = canvasOrigin.getContext('2d');
 		if (!originCtx) return;
-		originCtx.drawImage(tilesBitmap, 0, 0);
+		originCtx.clearRect(0, 0, originSize, originSize);
+		if (tilesBitmap) {
+			originCtx.drawImage(tilesBitmap, 0, 0);
+		}
+	}
+
+	function newBlank() {
+		tiles?.clearPixel();
+		updateCanvasOrigin();
+		updateCanvasTiles();
+		updateCanvasPaint();
+	}
+
+	let inputFile: HTMLInputElement;
+
+	function loadfile() {
+		inputFile.type = 'file';
+		inputFile.accept = 'image/*';
+		inputFile.click();
+
+		inputFile.addEventListener('change', (event) => {
+			const file = (event.target as HTMLInputElement).files![0];
+
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = async function () {
+					const img = new Image();
+					img.src = reader.result as string;
+
+					await img.decode();
+					const ctx = canvasOrigin.getContext('2d');
+					if (!ctx) return;
+					ctx.clearRect(0, 0, originSize, originSize);
+					ctx.drawImage(img, 0, 0);
+
+					tiles = new Canvas(originSize, originSize);
+					tiles.setImageData(ctx.getImageData(0, 0, originSize, originSize));
+
+					updateCanvasOrigin();
+					updateCanvasTiles();
+					updateCanvasPaint();
+				};
+
+				reader.readAsDataURL(file);
+			}
+		});
 	}
 
 	function exportPng() {
@@ -58,7 +105,7 @@
 	}
 
 	async function updateCanvasTiles() {
-		const tilesBitmap = await tiles.getImageBitmap();
+		const tilesBitmap = await tiles?.getImageBitmap();
 
 		const size = tileSize + 2;
 		const selectionRect = new Canvas(size, size);
@@ -78,37 +125,47 @@
 		if (!tilesCtx) return;
 		tilesCtx.imageSmoothingEnabled = false;
 		tilesCtx.clearRect(0, 0, originSize, originSize);
-		tilesCtx.drawImage(tilesBitmap, 0, 0);
+		if (tilesBitmap) {
+			tilesCtx.drawImage(tilesBitmap, 0, 0);
+		}
 		tilesCtx.drawImage(selectionRectBitmap, selectionRectPos.x - 1, selectionRectPos.y - 1);
 	}
 
 	async function updateCanvasPaint() {
-		const tilesBitmap = await tiles.getImageBitmap();
+		const tilesBitmap = await tiles?.getImageBitmap();
 
 		// canvasPaint, the current selected tile, painting canvas
 		let paintCtx = canvasPaint.getContext('2d');
 		if (!paintCtx) return;
 		paintCtx.imageSmoothingEnabled = false;
 		paintCtx.clearRect(0, 0, tileSize, tileSize);
-		paintCtx.drawImage(
-			tilesBitmap,
-			selectionRectPos.x,
-			selectionRectPos.y,
-			tileSize,
-			tileSize,
-			0,
-			0,
-			tileSize,
-			tileSize
-		);
+		if (tilesBitmap) {
+			paintCtx.drawImage(
+				tilesBitmap,
+				selectionRectPos.x,
+				selectionRectPos.y,
+				tileSize,
+				tileSize,
+				0,
+				0,
+				tileSize,
+				tileSize
+			);
+		}
 	}
 
 	function paintDraw() {
-		tiles.setPixel(
-			paintMousePos.x + selectionRectPos.x,
-			paintMousePos.y + selectionRectPos.y,
-			$selectedColor
-		);
+		const x = paintMousePos.x + selectionRectPos.x;
+		const y = paintMousePos.y + selectionRectPos.y;
+
+		switch ($activeTool) {
+			case Tool.Pencil:
+				tiles?.setPixel(x, y, $selectedColor);
+				break;
+			case Tool.Eraser:
+				tiles?.deletePixel(x, y);
+				break;
+		}
 		updateCanvasOrigin();
 		updateCanvasTiles();
 		updateCanvasPaint();
@@ -233,7 +290,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="flex flex-col items-center gap-4 p-2">
+				<div class="flex flex-col items-center gap-4 p-4">
 					<canvas
 						width={originSize}
 						height={originSize}
@@ -248,7 +305,12 @@
 						style="width: 640px; height: 640px;"
 						bind:this={canvasTiles}
 					></canvas>
-					<button class="bg-black px-4 py-2 text-white" onclick={exportPng}>Export</button>
+					<div class="flex-col items-center gap-4 p-4">
+						<button class="bg-slate-700 px-2 py-1 text-white" onclick={newBlank}>New</button>
+						<input type="file" id="inputFile" bind:this={inputFile} style="display: none;" />
+						<button class="bg-slate-700 px-2 py-1 text-white" onclick={loadfile}>Load</button>
+						<button class="bg-slate-700 px-2 py-1 text-white" onclick={exportPng}>Export</button>
+					</div>
 				</div>
 			</div>
 			<div class="h-full flex-1 bg-slate-800">
@@ -260,7 +322,7 @@
 						<span>y: {paintMousePos.y}</span>
 					</p>
 				</div>
-				<div class="flex flex-col items-center gap-2 p-2">
+				<div class="flex flex-col items-center gap-4 p-4">
 					<p class="text-xl text-white">#{selectedTileIndex}</p>
 					<canvas
 						width={tileSize}
@@ -269,6 +331,7 @@
 						style="width: 480px; height: 480px;"
 						bind:this={canvasPaint}
 					></canvas>
+					<ToolComponent />
 					<PalleteComponent />
 				</div>
 			</div>

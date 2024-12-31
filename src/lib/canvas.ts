@@ -1,4 +1,4 @@
-import type { Color } from './color';
+import { Color } from './color';
 
 export class Canvas {
 	width: number;
@@ -27,12 +27,12 @@ export class Canvas {
 
 	getPixel(x: number, y: number) {
 		const index = this.getIndex(x, y);
-		return {
-			r: this.imageData.data[index + 0],
-			g: this.imageData.data[index + 1],
-			b: this.imageData.data[index + 2],
-			a: this.imageData.data[index + 3]
-		} as Color;
+		return new Color(
+			this.imageData.data[index + 0],
+			this.imageData.data[index + 1],
+			this.imageData.data[index + 2],
+			this.imageData.data[index + 3]
+		);
 	}
 
 	setPixel(x: number, y: number, color: Color) {

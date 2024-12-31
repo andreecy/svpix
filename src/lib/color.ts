@@ -19,5 +19,7 @@ export class Color {
 		return new Color(r, g, b, a);
 	}
 
-	toUint32() {}
+	toUint32() {
+		return (this.a << 24) | (this.r << 16) | (this.g << 8) | this.b;
+	}
 }

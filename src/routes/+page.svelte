@@ -154,6 +154,46 @@
 		}
 	}
 
+	type Point = { x: number; y: number };
+
+	function fill(startPoint: Point, fillColor: Color) {
+		const oldColor = tiles?.getPixel(startPoint.x, startPoint.y);
+		if (oldColor?.toUint32() === fillColor.toUint32()) return;
+
+		const stack: Point[] = [startPoint];
+
+		while (stack.length > 0) {
+			const { x, y } = stack.pop()!;
+			const targetColor = tiles?.getPixel(x, y);
+
+			// check bounds and if the pixel need to be filled
+			if (
+				x >= selectionRectPos.x &&
+				x < selectionRectPos.x + tileSize &&
+				y >= selectionRectPos.y &&
+				y < selectionRectPos.y + tileSize &&
+				targetColor?.toUint32() === oldColor?.toUint32()
+			) {
+				tiles?.setPixel(x, y, fillColor);
+
+				// add neighbors to the stack
+				const left = { x: x - 1, y: y };
+				if (tiles?.getPixel(left.x, left.y).toUint32() === oldColor?.toUint32()) stack.push(left);
+
+				const right = { x: x + 1, y: y };
+				if (tiles?.getPixel(right.x, right.y).toUint32() === oldColor?.toUint32())
+					stack.push(right);
+
+				const top = { x: x, y: y - 1 };
+				if (tiles?.getPixel(top.x, top.y).toUint32() === oldColor?.toUint32()) stack.push(top);
+
+				const bottom = { x: x, y: y + 1 };
+				if (tiles?.getPixel(bottom.x, bottom.y).toUint32() === oldColor?.toUint32())
+					stack.push(bottom);
+			}
+		}
+	}
+
 	function paintDraw() {
 		const x = paintMousePos.x + selectionRectPos.x;
 		const y = paintMousePos.y + selectionRectPos.y;
@@ -164,6 +204,9 @@
 				break;
 			case Tool.Eraser:
 				tiles?.deletePixel(x, y);
+				break;
+			case Tool.Fill:
+				fill({ x, y }, $selectedColor);
 				break;
 		}
 		updateCanvasOrigin();

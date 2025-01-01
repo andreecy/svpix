@@ -1,14 +1,20 @@
 import { Color } from './color';
 
+interface ImageData {
+	readonly colorSpace: PredefinedColorSpace;
+	readonly data: Uint8ClampedArray;
+	readonly height: number;
+	readonly width: number;
+}
+
 export class Canvas {
 	width: number;
 	height: number;
-	imageData: ImageData;
+	imageData?: ImageData;
 
 	constructor(width: number, height: number) {
 		this.width = width;
 		this.height = height;
-		this.imageData = new ImageData(width, height);
 
 		this.clearPixel();
 	}
@@ -18,7 +24,7 @@ export class Canvas {
 	}
 
 	clearPixel() {
-		this.imageData.data.fill(0);
+		this.imageData?.data.fill(0);
 	}
 
 	getIndex(x: number, y: number) {
@@ -26,6 +32,7 @@ export class Canvas {
 	}
 
 	getPixel(x: number, y: number) {
+		if (!this.imageData) return new Color(0, 0, 0, 0);
 		const index = this.getIndex(x, y);
 		return new Color(
 			this.imageData.data[index + 0],
@@ -36,6 +43,7 @@ export class Canvas {
 	}
 
 	setPixel(x: number, y: number, color: Color) {
+		if (!this.imageData) return;
 		const index = this.getIndex(x, y);
 		this.imageData.data[index + 0] = color.r;
 		this.imageData.data[index + 1] = color.g;
@@ -44,6 +52,7 @@ export class Canvas {
 	}
 
 	deletePixel(x: number, y: number) {
+		if (!this.imageData) return;
 		const index = this.getIndex(x, y);
 		this.imageData.data[index + 0] = 0;
 		this.imageData.data[index + 1] = 0;
@@ -52,6 +61,7 @@ export class Canvas {
 	}
 
 	getImageBitmap() {
+		if (!this.imageData) return;
 		return createImageBitmap(this.imageData);
 	}
 }

@@ -1,8 +1,10 @@
 {
 	"name": "svpix",
-	"private": true,
-	"version": "0.0.1",
+	"description": "Pixel art sprite editor powered by Svelte",
+	"version": "0.1.0",
 	"type": "module",
+	"license": "MIT",
+	"author": "Andree Christian Yulianto",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

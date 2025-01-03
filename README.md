@@ -2,6 +2,8 @@
 
 SvPix is a pixel art sprite editor powered by Svelte.
 
+Working Demo: https://svpix.vercel.app/
+
 ## Overview
 
 SvPix is a web application that allows you to create and edit pixel art sprites.
@@ -19,3 +21,7 @@ It is built using Svelte, HTML Canvas, and Tailwind CSS for styling.
 ## Demo Video
 
 ## Screenshots
+
+![Screenshot 1](./docs/screenshot1.jpeg)
+
+![Screenshot 2](./docs/screenshot2.png)

@@ -20,6 +20,10 @@ It is built using Svelte, HTML Canvas, and Tailwind CSS for styling.
 
 ## Demo Video
 
+https://github.com/user-attachments/assets/1acd26e9-8d76-492f-b5d1-826811275bae
+
+
+
 ## Screenshots
 
 ![Screenshot 1](./docs/screenshot1.jpeg)
